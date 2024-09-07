@@ -10,15 +10,15 @@
 (function() {
     'use strict';
     
-    blockKeyboardShortcuts();
+    preventCopyPasteDisabling();
+    preventBlockingKeyboardShortcuts();
     preventBackButtonInterference();
     preventRightClickDisabling();
     preventTextSelectionDisabling();
-    preventCopyPasteDisabling();
 
 })();
 
-function blockKeyboardShortcuts() {
+function preventBlockingKeyboardShortcuts() {
     const targetKeys = [
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
         'l', 'f', 'g', 'p', 'o', '=', '-', 'i', 's', 'j', 
@@ -34,20 +34,30 @@ function blockKeyboardShortcuts() {
 }
 
 function preventBackButtonInterference() {
-    let isBackButtonClicked = false;
+    let backAttempts = 0;
+    const MAX_BACK_ATTEMPTS = 3;
+    const RESET_INTERVAL = 5000;
+
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+        // do nothing
+    };
 
     window.addEventListener('popstate', function(event) {
-        if (!isBackButtonClicked) {
-            window.history.pushState(null, null, window.location.href);
+        backAttempts++;
+        
+        if (backAttempts <= MAX_BACK_ATTEMPTS) {
+            history.go(-1);
+        } else {
+            window.location.href = document.referrer || '/';
         }
-        isBackButtonClicked = false;
     });
 
-    history.pushState(null, null, window.location.href);
-    window.addEventListener('popstate', function() {
-        isBackButtonClicked = true;
-        history.back();
-    });
+    setInterval(() => {
+        backAttempts = 0;
+    }, RESET_INTERVAL);
+
+    originalPushState.call(history, null, null, window.location.href);
 }
 
 function preventRightClickDisabling() {
@@ -88,7 +98,6 @@ function preventCopyPasteDisabling() {
         }, true);
     });
 
-    // Prevent overriding of copy, cut, and paste
     const overriddenFunctions = {
         copy: Document.prototype.execCommand,
         cut: Document.prototype.execCommand,
@@ -103,7 +112,6 @@ function preventCopyPasteDisabling() {
         return overriddenFunctions[commandId].apply(this, args);
     };
 
-    // Prevent disabling of clipboard events
     ['copy', 'cut', 'paste'].forEach(function(event) {
         Object.defineProperty(document, 'on' + event, {
             get: function() {
