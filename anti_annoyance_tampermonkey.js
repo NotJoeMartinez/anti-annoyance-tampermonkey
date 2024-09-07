@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Anti-annoyance Tampermonkey 
 // @namespace    https://github.com/NotJoeMartinez/anti-annoyance-tampermonkey 
-// @version      0.4
+// @version      0.5
 // @description  Prevents annoying scripts from being annoying 
 // @match        *://*/*
 // @grant        none
